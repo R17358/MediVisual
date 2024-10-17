@@ -8,8 +8,10 @@ import cv2
 import numpy as np
 import requests
 import PyPDF2
+import pytesseract
 from imgGen import ImageGenerator as IG
 
+imageSwitch = False
 
 def stream_data(data, delay: float = 0.1):
     placeholder = st.empty()  # Create an empty placeholder to update text
@@ -19,11 +21,20 @@ def stream_data(data, delay: float = 0.1):
         placeholder.markdown(f"""{text}""", unsafe_allow_html= True)  # Display progressively in markdown
         time.sleep(delay)
 
+def recognize_text(image):
+    try:
+        image = np.array(image)
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        text = pytesseract.image_to_string(gray, lang='hin+eng')            # lang='hin+eng'
+        return text.strip()
+    except Exception as e:
+        st.error(e)
+        return None
 
 def process(prompt):
     if hindi:
         prompt+= "Use hindi language for response"
-    prompt = f"""This is a medical Report of a victim as follow: {prompt}.You have to explain 
+    prompt = f"""This is a medical Report of a victim as following text form: {prompt}.You have to explain 
     the report in simple way so anyone can understand it but give complete information. but write everything in html format so I can display it 
     in streamlit markdown. you have to use the format as follow and write these all content: <h2>name of patient</h2><br>
     <h2> the most possible disease name</h2><br><br>
@@ -35,19 +46,18 @@ def process(prompt):
    
     response = textGenModel.chatResponse(prompt)
     stream_data(response.text, delay=0.02)
-    img_prompt_list = []
-    img_prompt = f"""Generate best 3D image generating prompts for disease and body parts mentioned in {response}. 
-    Don't write anything else. only write single prompt"""
-    for i in range (0,3):
-        Iprompt = textGenModel.chatResponse(img_prompt)
-        img_prompt_list.append(Iprompt.text)
+    if imageSwitch:
+        img_prompt_list = []
+        img_prompt = f"""Generate best 3D image generating prompts for disease and body parts mentioned in {response}. 
+        Don't write anything else. only write single prompt"""
+        for i in range (0,3):
+            Iprompt = textGenModel.chatResponse(img_prompt)
+            img_prompt_list.append(Iprompt.text)
 
-    with st.spinner("Image Generating...."):
-        for p in img_prompt_list:
-            print(p)
-            img, f = IG(p)
-            print(img)
-            st.image(img)
+        with st.spinner("Image Generating...."):
+            for p in img_prompt_list:
+                img, f = IG(p)
+                st.image(img)
 
 
 def is_image(file_path):
@@ -70,6 +80,7 @@ def read_pdf(file):
 st.title("MediVisual")
 st.divider()
 hindi = st.toggle("Hindi")
+imageSwitch = st.toggle("Images")
 st.divider()
 sidebar = st.sidebar
 sidebar.title("Menu")
@@ -108,7 +119,8 @@ with home:
             placeholder.empty()
             home.image(file, caption='Uploaded File.', width= 500)
             with st.spinner("Thinking...."):
-                process(file)
+                text = recognize_text(file)
+                process(text)
         else:
             text = read_pdf(file)
             placeholder.success("File Uploaded successfully")
