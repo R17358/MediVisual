@@ -1,6 +1,5 @@
 # MediVisual: AI-Powered Medical Report Analyzer
 
-![MediVisual Banner](https://your-image-link.com)
 
 ## 🚀 Introduction
 MediVisual is a Python and Streamlit-based web application that simplifies the understanding of medical reports. It allows users to upload PDFs or images of medical reports, extracts text using OCR, and utilizes AI (Gemini-1.5-Flash) to explain the report in simple terms. Additionally, it provides personalized health advice and visual insights.
